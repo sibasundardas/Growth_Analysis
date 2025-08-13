@@ -169,7 +169,7 @@ with tab3:
         st.plotly_chart(plot_growth_curve(chart_data[df_key], x_metric_col, height, weight, gender, "Weight-for-Length/Height Curve"), use_container_width=True)
 
 with tab4:
-    st.subheader("Illustrative Future Growth Prediction")
+    st.subheader("Future Growth Prediction")
     predicted_weight = models['predictor'].predict([[age_months, weight]])[0]
     future_age_months = age_months + 6
     
