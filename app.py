@@ -6,7 +6,7 @@ import numpy as np
 import re
 
 # --- CONFIG & LOADING ---
-st.set_page_config(page_title="Growth Analyzer Pro", layout="wide")
+st.set_page_config(page_title="Growth Analyzer",page_icon = "🩺", layout="wide")
 
 @st.cache_resource
 def load_models():
