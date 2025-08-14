@@ -21,20 +21,17 @@ def load_models():
 
 @st.cache_data
 def load_charting_data():
-    """Load the raw data needed for plotting the background curves."""
     data_frames = {
         'wfa': pd.concat([pd.read_excel('data/wfa-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/wfa-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')]),
         'lhfa': pd.concat([pd.read_excel('data/lhfa-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/lhfa-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')]),
         'wfl': pd.concat([pd.read_excel('data/wfl-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/wfl-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')]),
         'wfh': pd.concat([pd.read_excel('data/wfh-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/wfh-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')])
     }
-    # Add Agemos column for age-based charts
     for key in ['wfa', 'lhfa']:
         primary_col = data_frames[key].columns[0]
         data_frames[key]['Agemos'] = data_frames[key][primary_col] / 30.4375
     return data_frames
 
-# --- HELPER FUNCTIONS ---
 def get_percentile(metric_value, measurement, gender, model_key):
     model = models[model_key][gender]
     p_cols_names = list(model.keys())
@@ -116,11 +113,8 @@ chart_data = load_charting_data()
 st.sidebar.header("Child's Information")
 gender = st.sidebar.radio("Gender", ("Male", "Female"))
 
-# --- THIS IS THE UPDATED INPUT SECTION ---
 age_months = st.sidebar.number_input("Age (in months)", min_value=0.0, max_value=60.0, value=12.0, step=0.5)
-# We calculate days internally for logic, but the user only interacts with months
 age_days = age_months * 30.4375 
-# --- END OF UPDATE ---
 
 weight = st.sidebar.number_input("Weight (kg)", 1.0, 40.0, 9.6, 0.1)
 height = st.sidebar.number_input("Length/Height (cm)", 40.0, 130.0, 75.0, 0.5)
