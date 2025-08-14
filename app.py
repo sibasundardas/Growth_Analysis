@@ -6,7 +6,7 @@ import numpy as np
 import re
 
 # --- CONFIG & LOADING ---
-st.set_page_config(page_title="Growth Analyzer",page_icon = "🩺", layout="wide")
+st.set_page_config(page_title="Growth Analyzer Pro", layout="wide")
 
 @st.cache_resource
 def load_models():
@@ -46,7 +46,6 @@ def get_percentile(metric_value, measurement, gender, model_key):
     percentile = np.interp(measurement, p_values_sorted, p_labels_sorted)
     return round(percentile, 2)
 
-# --- UPDATED CLASSIFICATION FUNCTIONS ---
 def get_classification_details(percentile):
     if percentile < 3: return "High Risk / Severely Underweight or Stunted", "error"
     if 3 <= percentile < 15: return "At Risk / Underweight", "warning"
@@ -94,7 +93,6 @@ def plot_growth_curve(df, x_metric, x_val, y_val, gender, title):
     fig.update_layout(title=f'<b>{title} ({gender})</b>', xaxis_title=x_metric.replace("Agemos", "Age (Months)"), yaxis_title="Measurement", template='plotly_white')
     return fig
 
-# --- NEW PREDICTION PLOT FUNCTION ---
 def plot_prediction_curve(df, gender, current_age, current_weight, future_age, future_weight):
     df_gender = df[df['Sex'] == gender].sort_values(by='Agemos')
     fig = go.Figure()
@@ -105,7 +103,6 @@ def plot_prediction_curve(df, gender, current_age, current_weight, future_age, f
     fig.add_trace(go.Scatter(x=df_gender['Agemos'], y=df_gender[p97_col], mode='lines', line=dict(width=0), showlegend=False))
     fig.add_trace(go.Scatter(x=df_gender['Agemos'], y=df_gender[p3_col], mode='lines', line=dict(width=0), name='Normal Range', fill='tonexty', fillcolor='rgba(0,128,0,0.2)'))
     
-    # Plot current and predicted points
     fig.add_trace(go.Scatter(x=[current_age, future_age], y=[current_weight, future_weight], mode='lines+markers', name='Predicted Path',
                              line=dict(color='purple', dash='dash'), marker=dict(color='red', size=10, symbol='star')))
     
@@ -119,11 +116,15 @@ chart_data = load_charting_data()
 
 st.sidebar.header("Child's Information")
 gender = st.sidebar.radio("Gender", ("Male", "Female"))
-age_days = st.sidebar.number_input("Age (in days)", min_value=0, max_value=1856, value=365, step=1)
+
+# --- THIS IS THE UPDATED INPUT SECTION ---
+age_months = st.sidebar.number_input("Age (in months)", min_value=0.0, max_value=60.0, value=12.0, step=0.5)
+# We calculate days internally for logic, but the user only interacts with months
+age_days = age_months * 30.4375 
+# --- END OF UPDATE ---
+
 weight = st.sidebar.number_input("Weight (kg)", 1.0, 40.0, 9.6, 0.1)
 height = st.sidebar.number_input("Length/Height (cm)", 40.0, 130.0, 75.0, 0.5)
-
-age_months = age_days / 30.4375
 
 st.header("Growth Analysis Results")
 tab1, tab2, tab3, tab4 = st.tabs(["Weight for Age", "Length/Height for Age", "Weight for Length/Height", "Future Prediction"])
@@ -169,7 +170,7 @@ with tab3:
         st.plotly_chart(plot_growth_curve(chart_data[df_key], x_metric_col, height, weight, gender, "Weight-for-Length/Height Curve"), use_container_width=True)
 
 with tab4:
-    st.subheader("Future Growth Prediction")
+    st.subheader("Illustrative Future Growth Prediction")
     predicted_weight = models['predictor'].predict([[age_months, weight]])[0]
     future_age_months = age_months + 6
     
