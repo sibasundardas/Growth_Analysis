@@ -4,8 +4,10 @@ import plotly.graph_objects as go
 import joblib
 import numpy as np
 import re
+from PIL import Image
 
-st.set_page_config(page_title="Growth Analysis",page_icon="🩺", layout="wide")
+# --- CONFIG & LOADING ---
+st.set_page_config(page_title="Growth Analyzer Pro", layout="wide", page_icon="🩺")
 
 @st.cache_resource
 def load_models():
@@ -15,23 +17,26 @@ def load_models():
         'lhfa': joblib.load('models/lhfa_interpolators.joblib'),
         'wfl': joblib.load('models/wfl_interpolators.joblib'),
         'wfh': joblib.load('models/wfh_interpolators.joblib'),
+        'bmi': joblib.load('models/bmi_interpolators.joblib'),
+        'hc': joblib.load('models/hc_interpolators.joblib'),
         'predictor': joblib.load('models/growth_predictor.joblib')
     }
     return models
 
 @st.cache_data
 def load_charting_data():
+    """Load the pre-processed data from the faster .feather format."""
     data_frames = {
-        'wfa': pd.concat([pd.read_excel('data/wfa-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/wfa-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')]),
-        'lhfa': pd.concat([pd.read_excel('data/lhfa-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/lhfa-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')]),
-        'wfl': pd.concat([pd.read_excel('data/wfl-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/wfl-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')]),
-        'wfh': pd.concat([pd.read_excel('data/wfh-boys-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Male'), pd.read_excel('data/wfh-girls-percentiles-expanded-tables.xlsx', header=0).assign(Sex='Female')])
+        'wfa': pd.read_feather('processed_data/wfa_data.feather'),
+        'lhfa': pd.read_feather('processed_data/lhfa_data.feather'),
+        'wfl': pd.read_feather('processed_data/wfl_data.feather'),
+        'wfh': pd.read_feather('processed_data/wfh_data.feather'),
+        'bmi': pd.read_feather('processed_data/bmi_data.feather'),
+        'hc': pd.read_feather('processed_data/hc_data.feather')
     }
-    for key in ['wfa', 'lhfa']:
-        primary_col = data_frames[key].columns[0]
-        data_frames[key]['Agemos'] = data_frames[key][primary_col] / 30.4375
     return data_frames
 
+# --- HELPER FUNCTIONS ---
 def get_percentile(metric_value, measurement, gender, model_key):
     model = models[model_key][gender]
     p_cols_names = list(model.keys())
@@ -106,21 +111,25 @@ def plot_prediction_curve(df, gender, current_age, current_weight, future_age, f
     return fig
 
 # --- UI LAYOUT ---
-st.title("🩺 Comprehensive Neonatal & Infant Growth Analyzer")
+st.title("🩺 Neonatal & Infant Growth Analyzer")
+st.markdown("Developed by **NIST University, Artificial Intelligence Global Innovation Center (GIC)**")
+
 models = load_models()
 chart_data = load_charting_data()
 
 st.sidebar.header("Child's Information")
 gender = st.sidebar.radio("Gender", ("Male", "Female"))
-
 age_months = st.sidebar.number_input("Age (in months)", min_value=0.0, max_value=60.0, value=12.0, step=0.5)
 age_days = age_months * 30.4375 
-
 weight = st.sidebar.number_input("Weight (kg)", 1.0, 40.0, 9.6, 0.1)
 height = st.sidebar.number_input("Length/Height (cm)", 40.0, 130.0, 75.0, 0.5)
+hc = st.sidebar.number_input("Head Circumference (cm)", 25.0, 60.0, 45.0, 0.5)
 
 st.header("Growth Analysis Results")
-tab1, tab2, tab3, tab4 = st.tabs(["Weight for Age", "Length/Height for Age", "Weight for Length/Height", "Future Prediction"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "Weight for Age", "Length/Height for Age", "Weight for Length/Height",
+    "BMI for Age", "Head Circumference for Age", "Future Prediction"
+])
 
 with tab1:
     st.subheader("Weight-for-Age (WFA)")
@@ -163,6 +172,34 @@ with tab3:
         st.plotly_chart(plot_growth_curve(chart_data[df_key], x_metric_col, height, weight, gender, "Weight-for-Length/Height Curve"), use_container_width=True)
 
 with tab4:
+    st.subheader("Body Mass Index (BMI)-for-Age")
+    height_m = height / 100
+    if height_m > 0:
+        bmi_val = weight / (height_m ** 2)
+        st.write(f"**Calculated BMI:** {bmi_val:.2f}")
+        bmi_perc = get_percentile(age_months, bmi_val, gender, 'bmi')
+        display_classification(bmi_perc)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric(label="BMI Percentile", value=f"{bmi_perc}%")
+            st.plotly_chart(plot_gauge_chart(bmi_perc, "BMI Percentile"), use_container_width=True)
+        with col2:
+            st.plotly_chart(plot_growth_curve(chart_data['bmi'], 'Agemos', age_months, bmi_val, gender, "BMI-for-Age Growth Curve"), use_container_width=True)
+    else:
+        st.error("Height must be greater than 0 to calculate BMI.")
+
+with tab5:
+    st.subheader("Head Circumference-for-Age")
+    hc_perc = get_percentile(age_months, hc, gender, 'hc')
+    display_classification(hc_perc)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Head Circumference Percentile", value=f"{hc_perc}%")
+        st.plotly_chart(plot_gauge_chart(hc_perc, "HC Percentile"), use_container_width=True)
+    with col2:
+        st.plotly_chart(plot_growth_curve(chart_data['hc'], 'Agemos', age_months, hc, gender, "Head Circumference-for-Age Curve"), use_container_width=True)
+
+with tab6:
     st.subheader("Illustrative Future Growth Prediction")
     predicted_weight = models['predictor'].predict([[age_months, weight]])[0]
     future_age_months = age_months + 6
