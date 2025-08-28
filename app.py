@@ -60,6 +60,22 @@ def display_classification(percentile):
     elif type == "warning": st.warning(message)
     elif type == "error": st.error(message)
 
+def get_normal_range(metric_value, gender, model_key, unit):
+    """Calculates the 3rd and 97th percentile values for a given metric."""
+    model = models[model_key][gender]
+    
+    p3_func = None
+    p97_func = None
+    for key, func in model.items():
+        if 'P3' in key: p3_func = func
+        if 'P97' in key: p97_func = func
+
+    if p3_func and p97_func:
+        lower_bound = p3_func(metric_value)
+        upper_bound = p97_func(metric_value)
+        return f"**Normal Range (3rd-97th percentile):** {lower_bound:.1f} - {upper_bound:.1f} {unit}"
+    return "Normal range could not be calculated."
+
 def plot_gauge_chart(percentile_value, title_text):
     fig = go.Figure(go.Indicator(
         mode="gauge+number", value=percentile_value,
@@ -111,7 +127,7 @@ def plot_prediction_curve(df, gender, current_age, current_weight, future_age, f
     return fig
 
 # --- UI LAYOUT ---
-st.title("🩺 Neonatal & Infant Growth Analyzer")
+st.title("🩺 Comprehensive Neonatal & Infant Growth Analyzer")
 st.markdown("Developed by **NIST University, Artificial Intelligence Global Innovation Center (GIC)**")
 
 models = load_models()
@@ -135,6 +151,8 @@ with tab1:
     st.subheader("Weight-for-Age (WFA)")
     wfa_perc = get_percentile(age_months, weight, gender, 'wfa')
     display_classification(wfa_perc)
+    st.info(get_normal_range(age_months, gender, 'wfa', 'kg'))
+    
     col1, col2 = st.columns(2)
     with col1:
         st.metric(label="WFA Percentile", value=f"{wfa_perc}%")
@@ -146,6 +164,8 @@ with tab2:
     st.subheader("Length/Height-for-Age (LHFA)")
     lhfa_perc = get_percentile(age_months, height, gender, 'lhfa')
     display_classification(lhfa_perc)
+    st.info(get_normal_range(age_months, gender, 'lhfa', 'cm'))
+
     col1, col2 = st.columns(2)
     with col1:
         st.metric(label="LHFA Percentile", value=f"{lhfa_perc}%")
@@ -156,12 +176,13 @@ with tab2:
 with tab3:
     st.subheader("Weight-for-Length/Height (WFLH)")
     if age_days < 730:
-        model_key, metric_val, df_key = 'wfl', height, 'wfl'
+        model_key, metric_val, df_key, unit = 'wfl', height, 'wfl', 'kg'
     else:
-        model_key, metric_val, df_key = 'wfh', height, 'wfh'
+        model_key, metric_val, df_key, unit = 'wfh', height, 'wfh', 'kg'
 
     wflh_perc = get_percentile(metric_val, weight, gender, model_key)
     display_classification(wflh_perc)
+    st.info(get_normal_range(metric_val, gender, model_key, unit))
     x_metric_col = chart_data[df_key].columns[0]
     
     col1, col2 = st.columns(2)
@@ -171,20 +192,25 @@ with tab3:
     with col2:
         st.plotly_chart(plot_growth_curve(chart_data[df_key], x_metric_col, height, weight, gender, "Weight-for-Length/Height Curve"), use_container_width=True)
 
+# --- THIS IS THE UPDATED BMI TAB ---
 with tab4:
     st.subheader("Body Mass Index (BMI)-for-Age")
     height_m = height / 100
     if height_m > 0:
         bmi_val = weight / (height_m ** 2)
-        st.write(f"**Calculated BMI:** {bmi_val:.2f}")
         bmi_perc = get_percentile(age_months, bmi_val, gender, 'bmi')
-        display_classification(bmi_perc)
+        
+        # Display key metrics at the top
         col1, col2 = st.columns(2)
-        with col1:
-            st.metric(label="BMI Percentile", value=f"{bmi_perc}%")
-            st.plotly_chart(plot_gauge_chart(bmi_perc, "BMI Percentile"), use_container_width=True)
-        with col2:
-            st.plotly_chart(plot_growth_curve(chart_data['bmi'], 'Agemos', age_months, bmi_val, gender, "BMI-for-Age Growth Curve"), use_container_width=True)
+        col1.metric(label="Calculated BMI", value=f"{bmi_val:.2f}")
+        col2.metric(label="BMI Percentile", value=f"{bmi_perc}%")
+        
+        # Display classification and normal range below
+        display_classification(bmi_perc)
+        st.info(get_normal_range(age_months, gender, 'bmi', 'BMI'))
+
+        # Display charts
+        st.plotly_chart(plot_growth_curve(chart_data['bmi'], 'Agemos', age_months, bmi_val, gender, "BMI-for-Age Growth Curve"), use_container_width=True)
     else:
         st.error("Height must be greater than 0 to calculate BMI.")
 
@@ -192,6 +218,8 @@ with tab5:
     st.subheader("Head Circumference-for-Age")
     hc_perc = get_percentile(age_months, hc, gender, 'hc')
     display_classification(hc_perc)
+    st.info(get_normal_range(age_months, gender, 'hc', 'cm'))
+    
     col1, col2 = st.columns(2)
     with col1:
         st.metric(label="Head Circumference Percentile", value=f"{hc_perc}%")
