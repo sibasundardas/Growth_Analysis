@@ -294,7 +294,7 @@ with tabs[0]:
         plot_gauge(hc_perc, "Head Circ.-for-Age", "hc_gauge")
         st.info(f"**Status:** {classify_percentile(hc_perc)}")
 
-    st.subheader("💡 AI-Powered Explanation")
+    st.subheader("Explanation")
     ai_context = f"A {age_months}-month-old {gender.lower()}'s weight is at the {wfa_perc}th percentile and height is at the {lhfa_perc}th percentile."
     for p in get_gemini_analysis(ai_context):
         st.markdown(f"🔹 {p}")
