@@ -6,3 +6,4 @@ scipy
 openpyxl
 shap
 matplotlib
+google-generativeai
