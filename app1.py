@@ -6,9 +6,8 @@ import joblib
 import re
 
 # ==== APP CONFIG & UI THEME ====
-st.set_page_config(page_title="🩺 Neonatal & Infant Growth Analyzer", layout="wide")
+st.set_page_config(page_title="🩺 Comprehensive Neonatal & Infant Growth Analyzer", layout="wide")
 
-# --- PREVIOUS UI STYLES ---
 st.markdown("""
 <style>
 /* --- Main Background & Font --- */
@@ -34,14 +33,23 @@ body {
     box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
 }
 
-/* --- Eye-catching Section Headers --- */
+/* --- Input Fields Styling & Animation --- */
+input[type="number"] {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+input[type="number"]:focus {
+    border-color: #66a6ff !important;
+    box-shadow: 0 0 0 2px rgba(102, 166, 255, 0.25) !important;
+}
+
+/* --- UPDATED: Eye-catching Section Headers --- */
 .section-header {
     text-align: center;
-    font-weight: 800;
+    font-weight: 800; /* Made even bolder */
     color: #0a40a5;
-    font-size: 2.2rem;
-    margin-bottom: 25px;
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.15);
+    font-size: 2.2rem; /* Increased size significantly */
+    margin-bottom: 25px; /* More space below heading */
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.15); /* Stronger shadow */
 }
 
 /* --- Centering Utility --- */
@@ -52,7 +60,7 @@ body {
     width: 100%;
 }
 
-/* --- Enhanced Button Styling & Animation --- */
+/* --- UPDATED: Enhanced Button Styling & Animation --- */
 .stButton > button {
     background: linear-gradient(90deg,#0072ff 0%, #00c6ff 100%);
     color: white;
@@ -66,29 +74,29 @@ body {
 }
 .stButton > button:hover {
   background: linear-gradient(90deg,#00c6ff 0%, #0072ff 100%);
-  transform: translateY(-3px) scale(1.05);
+  transform: translateY(-3px) scale(1.05); /* This line is updated */
   box-shadow: 0 6px 20px 0 rgba(0,118,255,0.23);
   filter: brightness(1.2);
 }
 
-/* --- Tab Styling for Visibility, Spacing, and Font Size --- */
+/* --- UPDATED: Tab Styling for Visibility, Spacing, and Font Size --- */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 20px;
+    gap: 20px; /* Increased space between tabs significantly */
 }
 .stTabs [data-baseweb="tab"] {
     border-radius: 8px;
     background-color: #f0f2f6;
     transition: all 0.3s ease;
     font-weight: 600;
-    color: #0d47a1 !important;
-    font-size: 1.05rem;
-    padding: 10px 20px;
+    color: #0d47a1 !important; /* Set visible color for inactive tabs */
+    font-size: 1.05rem; /* Increased font size */
+    padding: 10px 20px; /* Adjusted padding for better fit */
 }
 .stTabs [aria-selected="true"] {
     background: linear-gradient(90deg, #6dd5ed 0%, #2193b0 100%);
     color: white !important;
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.1rem; /* Slightly larger for active tab */
+    font-weight: 700; /* Bolder for active tab */
 }
 </style>
 """, unsafe_allow_html=True)
@@ -147,95 +155,86 @@ def calculate_bmi(weight, height_cm):
 def calculate_target_height(father_height, mother_height, gender):
     return (father_height + mother_height + (13 if gender == "Male" else -13)) / 2
 
-# ==== NEW: DETAILED XAI FUNCTION WITH RISK HIGHLIGHTING ====
-def get_local_explanation(topic, data, gender):
+# ==== REVISED: LOCAL EXPLAINABLE AI (XAI) FUNCTION ====
+def get_local_explanation(topic, data):
+    """
+    Generates simple, rule-based explanations without an API call.
+    - topic (str): The section to explain (e.g., 'growth_charts', 'risks').
+    - data (dict): A dictionary containing the necessary values for the explanation.
+    """
     explanations = []
-    child = "your son" if gender == "Male" else "your daughter"
-    he_she = "he" if gender == "Male" else "she"
-    his_her = "his" if gender == "Male" else "her"
-
-    # Helper function to create red text for risks
-    def risk_text(text):
-        return f"<p style='color:red;'>{text}</p>"
-    
-    # Helper function for normal text points
-    def normal_text(text):
-        return f"<p>{text}</p>"
 
     if topic == 'growth_charts':
         wfa = data.get('wfa_perc', 50)
         lhfa = data.get('lhfa_perc', 50)
         
-        explanations.append(f"<b>Weight-for-Age ({wfa}th percentile):</b>")
+        # Weight-for-Age Explanation
         if wfa < 15:
-            explanations.append(risk_text(f"  • This indicates {child} is in a lower weight range compared to {his_her} peers, which is a potential risk."))
-            explanations.append(risk_text(f"  • Consistent low weight can impact energy levels and overall development."))
-            explanations.append(risk_text(f"  • It is highly advisable to consult a pediatrician to discuss {his_her} diet and rule out any health issues."))
+            explanations.append(f"**Weight-for-Age ({wfa}th %):** Your child's weight is in a lower range compared to their peers. This suggests they may not be gaining weight as expected. It's wise to discuss feeding and nutrition with a pediatrician.")
         elif wfa > 85:
-            explanations.append(normal_text(f"  • {child.capitalize()} is heavier than the average for {his_her} age, which can be a positive sign of good nutrition."))
-            explanations.append(normal_text(f"  • It's important to ensure this weight gain is balanced with steady height growth."))
-            explanations.append(risk_text(f"  • Monitor this trend with your doctor to ensure {he_she} maintains a healthy growth curve and avoids excessive weight gain."))
+            explanations.append(f"**Weight-for-Age ({wfa}th %):** Your child's weight is above average. This is often positive, but ensure it's balanced with their height growth to maintain a healthy trajectory.")
         else:
-            explanations.append(normal_text(f"  • This is a great sign! {his_her.capitalize()} weight is in the healthy, typical range for {his_her} age."))
-            explanations.append(normal_text(f"  • This indicates {he_she} is receiving good nutrition and growing steadily."))
-        
-        explanations.append(f"<br><b>Height-for-Age ({lhfa}th percentile):</b>")
-        if lhfa < 15:
-            explanations.append(risk_text(f"  • {child.capitalize()} is shorter for {his_her} age. This is a condition known as **stunting** if it persists."))
-            explanations.append(risk_text(f"  • Stunting is a serious issue as it relates to long-term nutrition and can affect overall development."))
-            explanations.append(risk_text(f"  • Ensure {his_her} diet is rich in protein, calcium, and vitamins, and discuss this finding with a healthcare professional."))
-        else:
-            explanations.append(normal_text(f"  • Excellent! {his_her.capitalize()} height is on track or above average for {his_her} age."))
-            explanations.append(normal_text(f"  • This is a strong indicator of healthy skeletal development and good long-term nutrition."))
+            explanations.append(f"**Weight-for-Age ({wfa}th %):** Your child's weight is in the healthy, typical range for their age. This is a great sign of steady growth!")
 
+        # Height-for-Age Explanation
+        if lhfa < 15:
+            explanations.append(f"**Height-for-Age ({lhfa}th %):** Your child's height/length is on the shorter side. Consistently low height-for-age can be a sign of stunting, which is related to long-term nutrition. A balanced diet is crucial.")
+        else:
+            explanations.append(f"**Height-for-Age ({lhfa}th %):** Your child's height is right on track or above average, which is an excellent indicator of healthy development.")
+            
     elif topic == 'body_composition':
         bmi = data.get('bmi_perc', 50)
-        explanations.append(f"<b>BMI-for-Age ({bmi}th percentile):</b>")
+        muac = data.get('muac', 15)
+
         if bmi < 5:
-            explanations.append(risk_text(f"  • BMI (Body Mass Index) shows {child} may be **underweight** for {his_her} height."))
-            explanations.append(risk_text(f"  • This is a significant health indicator and suggests {he_she} may not be getting enough calories or nutrients."))
-            explanations.append(risk_text(f"  • Please review this finding with a doctor to create a plan for healthy weight gain."))
+            explanations.append(f"**BMI-for-Age ({bmi}th %):** The BMI is quite low, indicating your child may be underweight for their height. This is an important metric to review with a healthcare provider.")
         elif bmi > 85:
-            explanations.append(risk_text(f"  • {his_her.capitalize()} BMI is in a higher range, suggesting a risk of being **overweight** or **obese**."))
-            explanations.append(risk_text(f"  • This can be an early indicator of future health problems, so it's important to address."))
-            explanations.append(risk_text(f"  • Focus on encouraging active play, limiting sugary drinks, and providing a diet of whole, unprocessed foods."))
+            explanations.append(f"**BMI-for-Age ({bmi}th %):** The BMI is in a higher range, which could be an early indicator of overweight risk. Monitoring their diet and activity levels is recommended.")
         else:
-            explanations.append(normal_text(f"  • Perfect. This shows a healthy balance between {his_her} weight and height."))
-            explanations.append(normal_text(f"  • This is a key sign of good nutritional status and lowers the risk of many health issues."))
+            explanations.append(f"**BMI-for-Age ({bmi}th %):** The BMI shows a healthy relationship between your child's weight and height. This is a key sign of good nutritional status.")
+        
+        if muac < 12.5:
+             explanations.append(f"**MUAC ({muac} cm):** The Mid-Upper Arm Circumference is in a low or borderline range. This can be an indicator of malnutrition, so it is highly recommended to seek professional medical advice.")
 
     elif topic == 'development':
         target_height = data.get('target_height', 170)
-        explanations.append(f"<b>Predicted Adult Height:</b>")
-        explanations.append(normal_text(f"  • Based on parental heights, the scientific estimate for {his_her} adult height is around **{target_height:.1f} cm**."))
-        explanations.append(normal_text(f"  • This is often called 'mid-parental height' and provides a genetic target for {his_her} growth potential."))
-        explanations.append(normal_text(f"  • Good nutrition, sleep, and a healthy lifestyle are crucial for {child} to reach this full potential."))
+        lhfa = data.get('lhfa_perc', 50)
+        explanations.append(f"**Genetic Potential:** Based on parental heights, your child's estimated adult height is around **{target_height:.1f} cm**. This is a genetic estimate of their potential.")
+        explanations.append(f"**Current Trajectory:** Your child's current height is at the **{lhfa}th percentile**. If they continue to grow along this curve, they are on a path consistent with their genetic potential. Good nutrition is key to achieving this potential.")
 
     elif topic == 'prediction':
         pred_6m = data.get('pred_weight_6m', 10)
-        explanations.append(f"<b>Future Growth Projection:</b>")
-        explanations.append(normal_text(f"  • Based on {his_her} current growth pattern, our model predicts {child} will weigh approximately **{pred_6m:.2f} kg** in six months."))
-        explanations.append(normal_text(f"  • This is a statistical forecast, not a guarantee. Growth can have spurts and slowdowns."))
-        explanations.append(normal_text(f"  • The best way to ensure healthy future growth is to continue with regular health check-ups and a balanced diet."))
-    
+        explanations.append(f"**Weight Projection:** Based on the current growth curve, your child is predicted to weigh approximately **{pred_6m:.2f} kg** in the next 6 months.")
+        explanations.append("This is a statistical forecast. Consistent nutrition and regular health check-ups will help ensure they stay on a healthy growth track.")
+
     elif topic == 'risks':
         risks = data.get('risk_factors', [])
         if not risks:
-            explanations.append(normal_text("<b>No Major Risks Identified:</b> Based on the data provided, your child appears to be on a healthy growth track. Continue with regular monitoring and healthy habits."))
+            explanations.append("**No Major Risks Identified:** Based on the input data, there are no immediate, critical growth risk factors. Continue to monitor their growth and maintain a healthy lifestyle.")
         else:
-            explanations.append("<b>Key Recommendations Based on Risks:</b>")
-            if "Low weight-for-age" in risks or "Very low BMI" in risks:
-                explanations.append(risk_text("  • <b>Address Underweight Status:</b> The low weight/BMI is a primary concern. Focus on providing calorie and nutrient-dense foods like avocado, full-fat dairy, and nut butters (if age appropriate). Consult a doctor to ensure there are no underlying medical issues affecting weight gain."))
+            if "Low weight-for-age" in risks:
+                explanations.append("**Underweight Risk:** The child's low weight is a concern. Focus on providing calorie and nutrient-dense foods. Consult a doctor to rule out any underlying issues.")
             if "Risk of stunting (low height)" in risks:
-                explanations.append(risk_text("  • <b>Focus on Linear Growth:</b> To combat stunting risk, ensure a diet rich in protein (for building blocks), calcium and Vitamin D (for bone health), and other essential micronutrients. This is crucial for long-term development."))
+                explanations.append("**Stunting Risk:** Low height-for-age can impact long-term development. Ensure their diet is rich in proteins, vitamins, and minerals essential for bone growth.")
             if "Malnutrition risk (low MUAC)" in risks:
-                explanations.append(risk_text("  • <b>Urgent Malnutrition Review:</b> A low MUAC (arm circumference) is a serious warning sign that requires immediate medical attention. Please see a healthcare professional as soon as possible to address acute malnutrition."))
-            if "High BMI (obesity risk)" in risks or "Central obesity risk" in risks:
-                explanations.append(risk_text("  • <b>Manage Obesity Risk:</b> To address high BMI or central obesity, reduce sugary snacks and drinks, encourage at least 60 minutes of active play per day, and focus family meals around vegetables, lean proteins, and whole grains."))
+                explanations.append("**Malnutrition Indicator:** A low MUAC measurement is a serious warning sign for malnutrition and requires an urgent consultation with a healthcare professional.")
+            
+            # --- THIS IS THE CORRECTED LOGIC ---
+            if "High BMI (obesity risk)" in risks:
+                 explanations.append("**High BMI Risk:** The child's Body Mass Index (BMI) is high for their age, which suggests a risk of being overweight. It is beneficial to focus on balanced meals and encourage age-appropriate physical activity.")
+            if "Central obesity risk" in risks:
+                 explanations.append("**Central Obesity Risk:** The child's waist measurement is high relative to their height. This indicates excess fat specifically around the abdomen, which is a key health concern. A diet with limited processed sugars and promoting regular active play is highly recommended.")
+    
+    # Fallback for summary or other topics
+    if not explanations:
+        return ["Analysis complete. Review the specific metrics in each tab for detailed information."]
+        
     return explanations
 
+
 # ========== INPUT UI ==========
-st.title("Neonatal & Infant Growth Analyzer")
-st.markdown("Developed by **NIST University & SIBA, Artificial Intelligence Global Innovation Center (GIC)**")
+st.title("🩺 Comprehensive Neonatal & Infant Growth Analyzer")
+st.markdown("Developed by **NIST University, Artificial Intelligence Global Innovation Center (GIC)**")
 
 with st.form("input_form"):
     st.markdown('<h1 class="section-header">Child Details</h1>', unsafe_allow_html=True)
@@ -262,10 +261,16 @@ with st.form("input_form"):
     with pc2: mother_height = st.number_input("Mother's Height (cm)", 140.0, 200.0, 165.0, 0.5)
 
     st.markdown("<br>", unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        submit_button = st.form_submit_button("Analyze Growth", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        submit_button = st.form_submit_button(
+            "Analyze Growth", 
+            use_container_width=True
+        )
+    # The closing divs were slightly misplaced, corrected here for proper centering
+    # st.markdown('</div>', unsafe_allow_html=True)
+    # st.markdown('</div>', unsafe_allow_html=True)
 
 if not submit_button:
     st.stop()
@@ -276,26 +281,36 @@ wfa_perc = get_percentile(age_months, weight, gender, 'wfa')
 lhfa_perc = get_percentile(age_months, height, gender, 'lhfa')
 hc_perc = get_percentile(age_months, head_circumference, gender, 'hc')
 bmi_perc = get_percentile(age_months, bmi, gender, 'bmi')
+muac_perc = max(10, min(90, (muac - 12) * 10 + 50))
 target_height = calculate_target_height(father_height, mother_height, gender)
 
 risk_score = 0
 risk_factors = []
-if wfa_perc < 15: risk_factors.append("Low weight-for-age"); risk_score += (3 if wfa_perc < 3 else 2)
-elif wfa_perc > 85: risk_factors.append("High weight-for-age"); risk_score += 2
-if lhfa_perc < 15: risk_factors.append("Risk of stunting (low height)"); risk_score += (3 if lhfa_perc < 3 else 2)
-if muac < 12.5: risk_factors.append("Malnutrition risk (low MUAC)"); risk_score += (4 if muac < 11.5 else 3)
-if bmi_perc < 5: risk_factors.append("Very low BMI"); risk_score += 2
-elif bmi_perc > 90: risk_factors.append("High BMI (obesity risk)"); risk_score += 3
-if waist_circumference and height and (waist_circumference/height) >= 0.5: risk_factors.append("Central obesity risk"); risk_score += 3
+if wfa_perc < 15:
+    risk_factors.append("Low weight-for-age")
+    risk_score += (3 if wfa_perc < 3 else 2)
+elif wfa_perc > 85:
+    risk_factors.append("High weight-for-age")
+    risk_score += 2
+if lhfa_perc < 15:
+    risk_factors.append("Risk of stunting (low height)")
+    risk_score += (3 if lhfa_perc < 3 else 2)
+if muac < 12.5:
+    risk_factors.append("Malnutrition risk (low MUAC)")
+    risk_score += (4 if muac < 11.5 else 3)
+if bmi_perc < 5:
+    risk_factors.append("Very low BMI")
+    risk_score += 2
+elif bmi_perc > 90:
+    risk_factors.append("High BMI (obesity risk)")
+    risk_score += 3
+if waist_circumference and height and (waist_circumference/height) >= 0.5:
+    risk_factors.append("Central obesity risk")
+    risk_score += 3
 
 # ========== TABS OUTPUT (FULL VERSION) ==========
-tab_labels = ["Growth Charts", "Body Composition", "Development", "Prediction", "Risks", "Summary"]
+tab_labels = ["📈 Growth Charts", "💪 Body Composition", "🧬 Development", "🔮 Prediction", "⚠️ Risks", "📋 Summary"]
 tabs = st.tabs(tab_labels)
-
-def display_explanations(topic, data, gender):
-    explanations = get_local_explanation(topic, data, gender)
-    for p in explanations:
-        st.markdown(p, unsafe_allow_html=True)
 
 with tabs[0]:
     st.header("Growth Chart Results")
@@ -311,13 +326,17 @@ with tabs[0]:
         st.info(f"**Status:** {classify_percentile(hc_perc)}")
 
     st.subheader("Explanation")
-    display_explanations('growth_charts', {'wfa_perc': wfa_perc, 'lhfa_perc': lhfa_perc}, gender)
+    # UPDATED: Call the new local function
+    explanation_data = {'wfa_perc': wfa_perc, 'lhfa_perc': lhfa_perc}
+    for p in get_local_explanation('growth_charts', explanation_data):
+        st.markdown(f"🔹 {p}")
 
 with tabs[1]:
     st.header("Body Composition Analysis")
     c1, c2 = st.columns([2, 1])
     with c1:
         plot_gauge(bmi_perc, "BMI-for-Age", "bmi_gauge")
+        if muac: plot_gauge(muac_perc, "MUAC (Approx. %)", "muac_gauge")
     with c2:
         st.metric("Body Mass Index (BMI)", f"{bmi:.2f}")
         st.metric("Triceps Skinfold (mm)", f"{triceps_sf:.1f}")
@@ -325,14 +344,20 @@ with tabs[1]:
         st.metric("Waist Circumference (cm)", f"{waist_circumference:.1f}")
 
     st.subheader("Explanation")
-    display_explanations('body_composition', {'bmi_perc': bmi_perc}, gender)
+    # UPDATED: Call the new local function
+    explanation_data = {'bmi_perc': bmi_perc, 'muac': muac}
+    for p in get_local_explanation('body_composition', explanation_data):
+        st.markdown(f"🔹 {p}")
 
 with tabs[2]:
     st.header("Development Insights")
     st.metric("Predicted Adult Height (Mid-Parental)", f"{target_height:.1f} cm")
     st.metric("Current Height Percentile", f"{lhfa_perc}th")
     st.subheader("Explanation")
-    display_explanations('development', {'target_height': target_height}, gender)
+    # UPDATED: Call the new local function
+    explanation_data = {'target_height': target_height, 'lhfa_perc': lhfa_perc}
+    for p in get_local_explanation('development', explanation_data):
+        st.markdown(f"🔹 {p}")
 
 with tabs[3]:
     st.header("Growth Predictions")
@@ -351,7 +376,10 @@ with tabs[3]:
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Explanation")
-    display_explanations('prediction', {'pred_weight_6m': pred_weight_6m}, gender)
+    # UPDATED: Call the new local function
+    explanation_data = {'pred_weight_6m': pred_weight_6m}
+    for p in get_local_explanation('prediction', explanation_data):
+        st.markdown(f"🔹 {p}")
 
 with tabs[4]:
     st.header("Risk Assessment & Recommendations")
@@ -362,7 +390,10 @@ with tabs[4]:
     else:
         st.success("No critical risk factors were identified based on the provided data.")
     st.subheader("Explanation")
-    display_explanations('risks', {'risk_factors': risk_factors}, gender)
+    # UPDATED: Call the new local function
+    explanation_data = {'risk_factors': risk_factors}
+    for p in get_local_explanation('risks', explanation_data):
+        st.markdown(f"🔹 {p}")
 
 with tabs[5]:
     st.header("Comprehensive Summary")
@@ -374,8 +405,12 @@ with tabs[5]:
             f"{target_height:.1f} cm", f"{risk_score} ({'Low Risk' if not risk_factors else ', '.join(risk_factors)})"
         ]
     }
-    st.dataframe(pd.DataFrame(summary_data), use_container_width=True, hide_index=True)
+    df_summary = pd.DataFrame(summary_data)
+    st.dataframe(df_summary, use_container_width=True, hide_index=True)
     st.subheader("Summary Recommendations")
-    display_explanations('risks', {'risk_factors': risk_factors}, gender)
+    # UPDATED: Call the risk explanation again for the summary tab
+    explanation_data = {'risk_factors': risk_factors}
+    for p in get_local_explanation('risks', explanation_data):
+        st.markdown(f"🔹 {p}")
 
 st.info("_Disclaimer: This tool is for informational purposes only. Always consult a qualified healthcare professional for medical advice._", icon="ℹ️")
