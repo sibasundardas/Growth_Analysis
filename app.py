@@ -239,7 +239,6 @@ st.title("Neonatal & Infant Growth Analyzer")
 st.markdown("Developed by **NIST University & SIBA, Artificial Intelligence Global Innovation Center (GIC)**")
 
 with st.form("input_form"):
-    st.markdown('<div class="card-section">', unsafe_allow_html=True)
     st.markdown('<h1 class="section-header">Child Details</h1>', unsafe_allow_html=True)
     st.markdown('<div class="center-content">', unsafe_allow_html=True)
     gender = st.radio("Gender", ("Male", "Female"), horizontal=True, key='gender', label_visibility="collapsed")
