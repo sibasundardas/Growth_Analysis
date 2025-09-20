@@ -154,9 +154,10 @@ def get_local_explanation(topic, data, gender):
     he_she = "he" if gender == "Male" else "she"
     his_her = "his" if gender == "Male" else "her"
 
-    # Helper function to create red text for risks
+    # Helper function to create styled text for risks
     def risk_text(text):
-        return f"<p style='color:red;'>{text}</p>"
+        # Using an orange color for warnings
+        return f"<p style='color:#eea41a;'>{text}</p>"
     
     # Helper function for normal text points
     def normal_text(text):
@@ -238,6 +239,7 @@ st.title("Neonatal & Infant Growth Analyzer")
 st.markdown("Developed by **NIST University & SIBA, Artificial Intelligence Global Innovation Center (GIC)**")
 
 with st.form("input_form"):
+    st.markdown('<div class="card-section">', unsafe_allow_html=True)
     st.markdown('<h1 class="section-header">Child Details</h1>', unsafe_allow_html=True)
     st.markdown('<div class="center-content">', unsafe_allow_html=True)
     gender = st.radio("Gender", ("Male", "Female"), horizontal=True, key='gender', label_visibility="collapsed")
